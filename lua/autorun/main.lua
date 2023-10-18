@@ -121,15 +121,24 @@ local npcname = {
 
 function GetNPCName( ent )
     if ( ent:GetClass() == "npc_citizen" ) then
-        if ( ent:GetName() == "griggs" ) then return "Griggs" end
-        if ( ent:GetName() == "sheckley" ) then return "Sheckley" end
-        if ( ent:GetName() == "tobias" ) then return "Laszlo" end
-        if ( ent:GetName() == "stanley" ) then return "Sandy" end
-        if ( ent:GetModel() == "models/odessa.mdl" ) then return "Odessa Cubbage" end
+        if ( ent:GetName() == "griggs" ) then return "格里格斯" end
+        if ( ent:GetName() == "sheckley" ) then return "肖克利" end
+        if ( ent:GetName() == "tobias" ) then return "拉兹罗" end
+        if ( ent:GetName() == "stanley" ) then return "珊迪" end
+        if ( ent:GetModel() == "models/odessa.mdl" ) then return "卡伯居上校" end
     end
     if ( ent:IsVehicle() and ent.VehicleTable and ent.VehicleTable.Name ) then
         return ent.VehicleTable.Name
     end
+    
+    -- if ( ent:IsNPC() ) then
+    --     local npcnames = npcname[ent]
+    --     if not npcnames then
+    --         if  ( ent.NPCTable and ent.NPCTable.Name ) then
+    --             local npcnames = ent.NPCTable.Name
+    --     return npcnames
+    -- end
+
     if ( ent:IsNPC() and ent.NPCTable and ent.NPCTable.Name ) then
         return ent.NPCTable.Name
     end
@@ -213,8 +222,7 @@ hook.Add("PlayerDeath", "PlayerDeathMessage", function(victim, inflictor, attack
     end
     -- 发送消息给所有玩家
     for _, ply in pairs(player.GetAll()) do
-        -- ply:PrintMessage(HUD_PRINTTALK, deathMessage)
-        ply:PrintMessage(HUD_PRINTTALK, victimName)
+        ply:PrintMessage(HUD_PRINTTALK, deathMessage)
     end
 end)
 
@@ -279,8 +287,7 @@ hook.Add("OnNPCKilled", "NPCDeathMessage", function(victim, attacker, inflictor)
         end
         -- 发送消息给所有玩家
         for _, ply in pairs(player.GetAll()) do
-            -- ply:PrintMessage(HUD_PRINTTALK, deathMessage)
-            ply:PrintMessage(HUD_PRINTTALK, victimName)
+            ply:PrintMessage(HUD_PRINTTALK, deathMessage)
         end
 
     end
