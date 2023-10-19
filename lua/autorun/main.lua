@@ -1,5 +1,4 @@
 local deathMessages = {
-
     ["npc_combine_s"] = {"死于联合军的暴政", "在联合军的火力下倒下", "被联合军瓦解了","死在了联合军的铁蹄之下", "成为联合军无情统治的牺牲品", "死于联合军的高压统治", "永别了，反抗者！" },
     ["npc_metropolice"] = {"被国民护卫队无情击毙","为人类解放事业而牺牲","被联合军的铁蹄碾碎" },
     ["npc_combinedropship"] = {"被联合军运输船击毙", "被运输船杀死，真是太逊了！", "被联合军空袭杀死"},
@@ -67,7 +66,6 @@ local deathMessages = {
     drown = {"被水淹死了", "被海浪冲走", "沉没于水底"},
     -- 添加更多情况，格式类似
 }
-
 local npcname = {
     ["npc_alyx"] = {"爱莉克斯"},
     ["npc_barney"] = {"巴尼"},
@@ -118,36 +116,39 @@ local npcname = {
     ["npc_manhack"] = {"飞锯","联合军飞锯"},
     ["npc_hunter"] = {"联合军猎人","猎人","狩猎者","捕食者"},
 }
-
+local SignedName = {}
 function GetNPCName( ent )
-    if ( ent:GetClass() == "npc_citizen" ) then
-        if ( ent:GetName() == "griggs" ) then return "格里格斯" end
-        if ( ent:GetName() == "sheckley" ) then return "肖克利" end
-        if ( ent:GetName() == "tobias" ) then return "拉兹罗" end
-        if ( ent:GetName() == "stanley" ) then return "珊迪" end
-        if ( ent:GetModel() == "models/odessa.mdl" ) then return "卡伯居上校" end
+    if !SignedName[ ent:GetClass() ] then
+        local txt = ent:GetClass()
+        if ( ent:GetClass() == "npc_citizen" ) then
+            if ( ent:GetName() == "griggs" ) then return "格里格斯" end
+            if ( ent:GetName() == "sheckley" ) then return "肖克利" end
+            if ( ent:GetName() == "tobias" ) then return "拉兹罗" end
+            if ( ent:GetName() == "stanley" ) then return "珊迪" end
+            if ( ent:GetModel() == "models/odessa.mdl" ) then return "卡伯居上校" end
+        end
+        if ( ent:IsNPC() and ent.NPCTable and ent.NPCTable.Name ) then
+            txt = ent.NPCTable.Name
+        elseif ( ent:IsVehicle() and ent.VehicleTable and ent.VehicleTable.Name ) then
+            txt = ent.VehicleTable.Name
+        end
+        SignedName[ ent:GetClass() ] = txt
     end
-    if ( ent:IsVehicle() and ent.VehicleTable and ent.VehicleTable.Name ) then
-        return ent.VehicleTable.Name
-    end
-    
-    -- if ( ent:IsNPC() ) then
-    --     local npcnames = npcname[ent]
-    --     if not npcnames then
-    --         if  ( ent.NPCTable and ent.NPCTable.Name ) then
-    --             local npcnames = ent.NPCTable.Name
-    --     return npcnames
-    -- end
-
-    if ( ent:IsNPC() and ent.NPCTable and ent.NPCTable.Name ) then
-        return ent.NPCTable.Name
-    end
-    return "#" .. ent:GetClass()
+    return SignedName[ ent:GetClass() ]
 end
 
-
+if SERVER then
+    util.AddNetworkString( "OFDeathMessage" )
+else
+    net.Receive( "OFDeathMessage", function()
+        local tab = util.JSONToTable( net.ReadString() )
+        local str = table.concat( tab, " " )
+        chat.AddText( Color( 255, 255, 255 ), unpack( tab ) )
+    end )
+end
 
 hook.Add("PlayerDeath", "PlayerDeathMessage", function(victim, inflictor, attacker)
+    local deathMessage = {}
     if IsValid(victim) and IsValid(attacker) and attacker:IsNPC() then
         local victimName = victim:Nick()
         local attackerName = attacker:GetClass()
@@ -162,17 +163,17 @@ hook.Add("PlayerDeath", "PlayerDeathMessage", function(victim, inflictor, attack
             local messagescustomc2 = deathMessages.customc2
             local randomIndex = math.random(3)
             if randomIndex == 1 then
-                deathMessage = victimName .. " " .. messagescustoma1[math.random(1, #messagescustoma1)] .. " " .. attackerName .. " " .. messagescustoma2[math.random(1, #messagescustoma2)]
+                deathMessage = { victimName, " ", messagescustoma1[math.random(1, #messagescustoma1)], " ", attackerName, " ", messagescustoma2[math.random(1, #messagescustoma2)] }
             elseif randomIndex == 2 then
-                deathMessage = victimName .. " " .. messagescustomb1[math.random(1, #messagescustomb1)] .. " " .. attackerName .. " " .. messagescustomb2[math.random(1, #messagescustomb2)]
+                deathMessage = { victimName, " ", messagescustomb1[math.random(1, #messagescustomb1)], " ", attackerName, " ", messagescustomb2[math.random(1, #messagescustomb2)] }
             else
-                deathMessage = victimName .. " " .. messagescustomc1[math.random(1, #messagescustomc1)] .. " " .. attackerName .. " " .. messagescustomc2[math.random(1, #messagescustomc2)]
+                deathMessage = { victimName, " ", messagescustomc1[math.random(1, #messagescustomc1)], " ", attackerName, " ", messagescustomc2[math.random(1, #messagescustomc2)] }
             end
         else
-            deathMessage = victimName .. " " .. messages[math.random(1, #messages)]
+            deathMessage = { victimName, " ", messages[math.random(1, #messages)] }
         end
 
-        -- local deathMessage = victimName .. " " .. randomMessage .. " " .. attackerName
+        -- local deathMessage = victimName, randomMessage, attackerName
 
 
 
@@ -188,11 +189,11 @@ hook.Add("PlayerDeath", "PlayerDeathMessage", function(victim, inflictor, attack
         local messagescustomc2 = deathMessages.customc2
         local randomIndex = math.random(3)
         if randomIndex == 1 then
-            deathMessage = victimName .. " " .. messagescustoma1[math.random(1, #messagescustoma1)] .. " " .. attackerName .. " " .. messagescustoma2[math.random(1, #messagescustoma2)]
+            deathMessage = { victimName, " ", messagescustoma1[math.random(1, #messagescustoma1)], " ", attackerName, " ", messagescustoma2[math.random(1, #messagescustoma2)] }
         elseif randomIndex == 2 then
-            deathMessage = victimName .. " " .. messagescustomb1[math.random(1, #messagescustomb1)] .. " " .. attackerName .. " " .. messagescustomb2[math.random(1, #messagescustomb2)]
+            deathMessage = { victimName, " ", messagescustomb1[math.random(1, #messagescustomb1)], " ", attackerName, " ", messagescustomb2[math.random(1, #messagescustomb2)] }
         else
-            deathMessage = victimName .. " " .. messagescustomc1[math.random(1, #messagescustomc1)] .. " " .. attackerName .. " " .. messagescustomc2[math.random(1, #messagescustomc2)]
+            deathMessage = { victimName, " ", messagescustomc1[math.random(1, #messagescustomc1)], " ", attackerName, " ", messagescustomc2[math.random(1, #messagescustomc2)] }
         end
 
     elseif IsValid(victim) and victim:IsPlayer() and not IsValid(attacker) then
@@ -201,31 +202,30 @@ hook.Add("PlayerDeath", "PlayerDeathMessage", function(victim, inflictor, attack
         local victimName = victim:Nick()
         if dmgType == DMG_FALL then
             local messages = deathMessages.fall or deathMessages.default
-            deathMessage = victimName .. " " .. messages[math.random(1, #messages)]
+            deathMessage = victimName, messages[math.random(1, #messages)]
         elseif dmgType == DMG_BURN then
             local messages = deathMessages.fire or deathMessages.default
-            deathMessage = victimName .. " " .. messages[math.random(1, #messages)]
+            deathMessage = victimName, messages[math.random(1, #messages)]
         elseif dmgType == DMG_BLAST then
             local messages = deathMessages.explosion or deathMessages.default
-            deathMessage = victimName .. " " .. messages[math.random(1, #messages)]
+            deathMessage = victimName, messages[math.random(1, #messages)]
         elseif dmgType == DMG_CRUSH then
             local messages = deathMessages.crash or deathMessages.default
-            deathMessage = victimName .. " " .. messages[math.random(1, #messages)]
+            deathMessage = victimName, messages[math.random(1, #messages)]
         elseif dmgType == DMG_DROWN then
             local messages = deathMessages.drown or deathMessages.default
-            deathMessage = victimName .. " " .. messages[math.random(1, #messages)]
+            deathMessage = victimName, messages[math.random(1, #messages)]
         else
             local messages = deathMessages.default
-            deathMessage = victimName .. " " .. messages[math.random(1, #messages)]
+            deathMessage = victimName, messages[math.random(1, #messages)]
         end
 
     end
     -- 发送消息给所有玩家
-    for _, ply in pairs(player.GetAll()) do
-        ply:PrintMessage(HUD_PRINTTALK, deathMessage)
-    end
+    net.Start( "OFDeathMessage" )
+    net.WriteString( util.TableToJSON( deathMessage ) )
+    net.Broadcast()
 end)
-
 
 hook.Add("OnNPCKilled", "NPCDeathMessage", function(victim, attacker, inflictor)
     if IsValid(victim) and IsValid(attacker) then
@@ -238,10 +238,8 @@ hook.Add("OnNPCKilled", "NPCDeathMessage", function(victim, attacker, inflictor)
         --     victimName = "#" .. victim:GetClass()
         -- end
 
-        local victimName = GetNPCName(victim)
-
-        print(victimName)
-
+        local deathMessage = {}
+        local victimName = GetNPCName( victim )
         if attacker and attacker:IsPlayer() then
             local attackerName = attacker:Nick()
             local messagescustoma1 = deathMessages.customa1
@@ -252,11 +250,11 @@ hook.Add("OnNPCKilled", "NPCDeathMessage", function(victim, attacker, inflictor)
             local messagescustomc2 = deathMessages.customc2
             local randomIndex = math.random(3)
                 if randomIndex == 1 then
-                    deathMessage = victimName .. " " .. messagescustoma1[math.random(1, #messagescustoma1)] .. " " .. attackerName .. " " .. messagescustoma2[math.random(1, #messagescustoma2)]
+                    deathMessage = { victimName, " ", messagescustoma1[math.random(1, #messagescustoma1)], " ", attackerName, " ", messagescustoma2[math.random(1, #messagescustoma2)] }
                 elseif randomIndex == 2 then
-                    deathMessage = victimName .. " " .. messagescustomb1[math.random(1, #messagescustomb1)] .. " " .. attackerName .. " " .. messagescustomb2[math.random(1, #messagescustomb2)]
+                    deathMessage = { victimName, " ", messagescustomb1[math.random(1, #messagescustomb1)], " ", attackerName, " ", messagescustomb2[math.random(1, #messagescustomb2)] }
                 else
-                    deathMessage = victimName .. " " .. messagescustomc1[math.random(1, #messagescustomc1)] .. " " .. attackerName .. " " .. messagescustomc2[math.random(1, #messagescustomc2)]
+                    deathMessage = { victimName, " ", messagescustomc1[math.random(1, #messagescustomc1)], " ", attackerName, " ", messagescustomc2[math.random(1, #messagescustomc2)] }
                 end
 
         elseif attacker and attacker:IsNPC() then
@@ -275,21 +273,18 @@ hook.Add("OnNPCKilled", "NPCDeathMessage", function(victim, attacker, inflictor)
                 local messagescustomc2 = deathMessages.customc2
                 local randomIndex = math.random(3)
                 if randomIndex == 1 then
-                    deathMessage = victimName .. " " .. messagescustoma1[math.random(1, #messagescustoma1)] .. " " .. attackerName .. " " .. messagescustoma2[math.random(1, #messagescustoma2)]
+                    deathMessage = { victimName, " ", messagescustoma1[math.random(1, #messagescustoma1)], " ", attackerName, " ", messagescustoma2[math.random(1, #messagescustoma2)] }
                 elseif randomIndex == 2 then
-                    deathMessage = victimName .. " " .. messagescustomb1[math.random(1, #messagescustomb1)] .. " " .. attackerName .. " " .. messagescustomb2[math.random(1, #messagescustomb2)]
+                    deathMessage = { victimName, " ", messagescustomb1[math.random(1, #messagescustomb1)], " ", attackerName, " ", messagescustomb2[math.random(1, #messagescustomb2)] }
                 else
-                    deathMessage = victimName .. " " .. messagescustomc1[math.random(1, #messagescustomc1)] .. " " .. attackerName .. " " .. messagescustomc2[math.random(1, #messagescustomc2)]
+                    deathMessage = { victimName, " ", messagescustomc1[math.random(1, #messagescustomc1)], " ", attackerName, " ", messagescustomc2[math.random(1, #messagescustomc2)] }
                 end
             else
-                deathMessage = victimName .. " " .. messages[math.random(1, #messages)]
+                deathMessage = { victimName, " ", messages[math.random(1, #messages)] }
             end
         end
-        -- 发送消息给所有玩家
-        for _, ply in pairs(player.GetAll()) do
-            ply:PrintMessage(HUD_PRINTTALK, deathMessage)
-        end
-
+        net.Start( "OFDeathMessage" )
+        net.WriteString( util.TableToJSON( deathMessage ) )
+        net.Broadcast()
     end
-
-end)
+end )
