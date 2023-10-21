@@ -39,7 +39,7 @@ local deathMessages = {
 
     ["npc_citizen"] = {"被反叛者击杀", "被叛军杀死", "被市民们痛打而死", "在暴动中失去生命，安息吧~", "现在知道谁才是老大了吧"},
     ["npc_fisherman"] = {"你怎么会让一个打渔人杀了？"},
-    ["npc_monk"] = {"被一个疯癫的光头僧侣打死"},
+    ["npc_monk"] = {"被一个疯癫的光头僧侣打死", "被神父教训了"},
     ["npc_vortigaunt"] = {"被弗地冈人击杀", "死于弗地冈人的致命光束", "在暴动中失去生命，安息吧~", "现在知道谁才是老大了吧"},
     ["npc_alyx"] = {"被老婆杀了"},
     ["npc_barney"] = {"现在你不欠他啤酒了"},
@@ -109,7 +109,7 @@ local ofnpcnames = {
     ["npc_turret_floor"] = {"炮塔","步哨"},
     ["npc_combine_s"] = {"联合军士兵","联合军"},
     ["npc_cscanner"] = {"联合军扫描仪","无人机","联合军无人机"},
-    ["npc_clawscanner"] = {"联合军爪形扫描仪"},
+    ["npc_clawscanner"] = {"联合军盾形扫描仪"},
     ["npc_combinegunship"] = {"联合军炮艇","炮艇"},
     ["npc_combinedropship"] = {"联合军运输船","运输船"},
     ["npc_helicopter"] = {"猎捕直升机","直升机"},
@@ -121,7 +121,10 @@ local ofnpcnames = {
     ["npc_hunter"] = {"联合军猎人","猎人","狩猎者","捕食者"},
 }
 
-
+CreateConVar( "of_deathmessage_player", "1",{ FCVAR_SERVER_CAN_EXECUTE, FCVAR_ARCHIVE }, "" )	--是否开启玩家死亡消息
+CreateConVar( "of_deathmessage_npc", "1",{ FCVAR_SERVER_CAN_EXECUTE, FCVAR_ARCHIVE }, "" )	--是否开启NPC死亡消息
+CreateConVar( "of_deathmessage_realname", "0",{ FCVAR_SERVER_CAN_EXECUTE, FCVAR_ARCHIVE }, "" )	--是否显示NPC真实名称
+CreateConVar( "of_deathmessage_detail", "0",{ FCVAR_SERVER_CAN_EXECUTE, FCVAR_ARCHIVE }, "" )	--是否详细化死亡消息
 
 -- local SignedName = {}
 -- function GetNPCName( ent )
@@ -148,16 +151,16 @@ local ofnpcnames = {
 --     return SignedName[ ent:GetClass() ]
 -- end
 
+
 function GetNPCName( ent )
-    if ( ent:GetClass() == "npc_citizen" ) then
+    if ( ent:GetClass() == "npc_citizen" and GetConVarNumber( "of_deathmessage_realname" ) == 0 ) then
         if ( ent:GetName() == "griggs" ) then return "格里格斯" end
         if ( ent:GetName() == "sheckley" ) then return "肖克利" end
         if ( ent:GetName() == "tobias" ) then return "拉兹罗" end
         if ( ent:GetName() == "stanley" ) then return "珊迪" end
         if ( ent:GetModel() == "models/odessa.mdl" ) then return "卡伯居上校" end
     end
-    
-    if ( ent:IsNPC() and ofnpcnames[ ent:GetClass() ] ) then
+    if ( ent:IsNPC() and ofnpcnames[ ent:GetClass() ] and GetConVarNumber( "of_deathmessage_realname" ) == 0 ) then
         local ofnpcname = ofnpcnames[ ent:GetClass() ]
         return ofnpcname[math.random(1, #ofnpcname)]
     elseif ( ent:IsNPC() and ent.NPCTable and ent.NPCTable.Name ) then
@@ -204,125 +207,14 @@ else
 end
 
 hook.Add("PlayerDeath", "PlayerDeathMessage", function(victim, inflictor, attacker)
-    local deathMessage = {}
-    if IsValid(victim) and IsValid(attacker) and attacker:IsNPC() then
-        local victimName = victim:Nick()
-        local attackerName = attacker:GetClass()
-
-        local messages = deathMessages[attackerName]
-        if not messages then
-            local messagescustoma1 = deathMessages.customa1
-            local messagescustoma2 = deathMessages.customa2
-            local messagescustomb1 = deathMessages.customb1
-            local messagescustomb2 = deathMessages.customb2
-            local messagescustomc1 = deathMessages.customc1
-            local messagescustomc2 = deathMessages.customc2
-            local randomIndex = math.random(3)
-            if randomIndex == 1 then
-                deathMessage = { victimName, " ", messagescustoma1[math.random(1, #messagescustoma1)], " ", attackerName, " ", messagescustoma2[math.random(1, #messagescustoma2)] }
-            elseif randomIndex == 2 then
-                deathMessage = { victimName, " ", messagescustomb1[math.random(1, #messagescustomb1)], " ", attackerName, " ", messagescustomb2[math.random(1, #messagescustomb2)] }
-            else
-                deathMessage = { victimName, " ", messagescustomc1[math.random(1, #messagescustomc1)], " ", attackerName, " ", messagescustomc2[math.random(1, #messagescustomc2)] }
-            end
-        else
-            deathMessage = { victimName, " ", messages[math.random(1, #messages)] }
-        end
-
-        -- local deathMessage = victimName, randomMessage, attackerName
-
-
-
-    elseif IsValid(victim) and IsValid(attacker) and attacker:IsPlayer() then
-        if victim == attacker then
-            local messages = deathMessages.suicide or deathMessages.default
-            deathMessage = { victimName, " ", messages[math.random(1, #messages)] }
-        else
-            local victimName = victim:Nick()
-            local attackerName = attacker:Nick()
-
-            local messagescustoma1 = deathMessages.customa1
-            local messagescustoma2 = deathMessages.customa2
-            local messagescustomb1 = deathMessages.customb1
-            local messagescustomb2 = deathMessages.customb2
-            local messagescustomc1 = deathMessages.customc1
-            local messagescustomc2 = deathMessages.customc2
-            local randomIndex = math.random(3)
-            if randomIndex == 1 then
-                deathMessage = { victimName, " ", messagescustoma1[math.random(1, #messagescustoma1)], " ", attackerName, " ", messagescustoma2[math.random(1, #messagescustoma2)] }
-            elseif randomIndex == 2 then
-                deathMessage = { victimName, " ", messagescustomb1[math.random(1, #messagescustomb1)], " ", attackerName, " ", messagescustomb2[math.random(1, #messagescustomb2)] }
-            else
-                deathMessage = { victimName, " ", messagescustomc1[math.random(1, #messagescustomc1)], " ", attackerName, " ", messagescustomc2[math.random(1, #messagescustomc2)] }
-            end
-        end
-    elseif IsValid(victim) and victim:IsPlayer() and not IsValid(attacker) then
-        local dmgType = victim:LastHitGroup() -- 获取玩家最后受到的伤害类型
-        local victimName = victim:Nick()
-        print(dmgType)
-        if dmgType == DMG_FALL then
-            local messages = deathMessages.fall or deathMessages.default
-            deathMessage = { victimName, " ", messages[math.random(1, #messages)] }
-        elseif dmgType == DMG_BURN then
-            local messages = deathMessages.fire or deathMessages.default
-            deathMessage = { victimName, " ", messages[math.random(1, #messages)] }
-        elseif dmgType == DMG_BLAST then
-            local messages = deathMessages.explosion or deathMessages.default
-            deathMessage = { victimName, " ", messages[math.random(1, #messages)] }
-        elseif dmgType == DMG_CRUSH then
-            local messages = deathMessages.crash or deathMessages.default
-            deathMessage = { victimName, " ", messages[math.random(1, #messages)] }
-        elseif dmgType == DMG_DROWN then
-            local messages = deathMessages.drown or deathMessages.default
-            deathMessage = { victimName, " ", messages[math.random(1, #messages)] }
-        else
-            local messages = deathMessages.default
-            deathMessage = { victimName, " ", messages[math.random(1, #messages)] }
-        end
-    end
-    -- 发送消息给所有玩家
-    net.Start( "OFDeathMessage" )
-    net.WriteString( util.TableToJSON( deathMessage ) )
-    net.Broadcast()
-end)
-
-hook.Add("OnNPCKilled", "NPCDeathMessage", function(victim, attacker, inflictor)
-    if IsValid(victim) and IsValid(attacker) then
-        -- local cls = victim:GetClass()
-        -- local victimName = list.Get("NPC")[ cls ] and list.Get("NPC")[ cls ].Name or cls
-
-        -- if ( victim:IsNPC() and victim.NPCTable and victim.NPCTable.Name ) then
-        --     victimName =  victim.NPCTable.Name
-        -- else
-        --     victimName = "#" .. victim:GetClass()
-        -- end
-
+    if( GetConVarNumber( "of_deathmessage_player" ) == 1 ) then
         local deathMessage = {}
-        local victimName = GetNPCName( victim )
-        if attacker and attacker:IsPlayer() then
-            local attackerName = attacker:Nick()
-            local messagescustoma1 = deathMessages.customa1
-            local messagescustoma2 = deathMessages.customa2
-            local messagescustomb1 = deathMessages.customb1
-            local messagescustomb2 = deathMessages.customb2
-            local messagescustomc1 = deathMessages.customc1
-            local messagescustomc2 = deathMessages.customc2
-            local randomIndex = math.random(3)
-                if randomIndex == 1 then
-                    deathMessage = { victimName, " ", messagescustoma1[math.random(1, #messagescustoma1)], " ", attackerName, " ", messagescustoma2[math.random(1, #messagescustoma2)] }
-                elseif randomIndex == 2 then
-                    deathMessage = { victimName, " ", messagescustomb1[math.random(1, #messagescustomb1)], " ", attackerName, " ", messagescustomb2[math.random(1, #messagescustomb2)] }
-                else
-                    deathMessage = { victimName, " ", messagescustomc1[math.random(1, #messagescustomc1)], " ", attackerName, " ", messagescustomc2[math.random(1, #messagescustomc2)] }
-                end
-
-        elseif attacker and attacker:IsNPC() then
-            -- local cls = attacker:GetClass()
-            -- local attackerName = list.Get( "NPC" )[ cls ] and list.Get( "NPC" )[ cls ].Name or cls
-
+        if IsValid(victim) and IsValid(attacker) and attacker:IsNPC() then
+            local victimName = victim:Nick()
+            local attackerClass = attacker:GetClass()
             local attackerName = GetNPCName(attacker)
 
-            local messages = deathMessages[attackerName]
+            local messages = deathMessages[attackerClass]
             if not messages then
                 local messagescustoma1 = deathMessages.customa1
                 local messagescustoma2 = deathMessages.customa2
@@ -341,9 +233,143 @@ hook.Add("OnNPCKilled", "NPCDeathMessage", function(victim, attacker, inflictor)
             else
                 deathMessage = { victimName, " ", messages[math.random(1, #messages)] }
             end
+
+            -- local deathMessage = victimName, randomMessage, attackerName
+
+
+
+        elseif IsValid(victim) and IsValid(attacker) and attacker:IsPlayer() then
+            local victimName = victim:Nick()
+            if victim == attacker then
+                local messages = deathMessages.suicide or deathMessages.default
+                deathMessage = { victimName, " ", messages[math.random(1, #messages)] }
+            else
+                local attackerName = attacker:Nick()
+
+                local messagescustoma1 = deathMessages.customa1
+                local messagescustoma2 = deathMessages.customa2
+                local messagescustomb1 = deathMessages.customb1
+                local messagescustomb2 = deathMessages.customb2
+                local messagescustomc1 = deathMessages.customc1
+                local messagescustomc2 = deathMessages.customc2
+                local randomIndex = math.random(3)
+                if randomIndex == 1 then
+                    deathMessage = { victimName, " ", messagescustoma1[math.random(1, #messagescustoma1)], " ", attackerName, " ", messagescustoma2[math.random(1, #messagescustoma2)] }
+                elseif randomIndex == 2 then
+                    deathMessage = { victimName, " ", messagescustomb1[math.random(1, #messagescustomb1)], " ", attackerName, " ", messagescustomb2[math.random(1, #messagescustomb2)] }
+                else
+                    deathMessage = { victimName, " ", messagescustomc1[math.random(1, #messagescustomc1)], " ", attackerName, " ", messagescustomc2[math.random(1, #messagescustomc2)] }
+                end
+            end
+        elseif IsValid(victim) and victim:IsPlayer() and not IsValid(attacker) then
+            local dmgType = victim:LastHitGroup() -- 获取玩家最后受到的伤害类型
+            local victimName = victim:Nick()
+            print(dmgType)
+            if dmgType == DMG_FALL then
+                local messages = deathMessages.fall or deathMessages.default
+                deathMessage = { victimName, " ", messages[math.random(1, #messages)] }
+            elseif dmgType == DMG_BURN then
+                local messages = deathMessages.fire or deathMessages.default
+                deathMessage = { victimName, " ", messages[math.random(1, #messages)] }
+            elseif dmgType == DMG_BLAST then
+                local messages = deathMessages.explosion or deathMessages.default
+                deathMessage = { victimName, " ", messages[math.random(1, #messages)] }
+            elseif dmgType == DMG_CRUSH then
+                local messages = deathMessages.crash or deathMessages.default
+                deathMessage = { victimName, " ", messages[math.random(1, #messages)] }
+            elseif dmgType == DMG_DROWN then
+                local messages = deathMessages.drown or deathMessages.default
+                deathMessage = { victimName, " ", messages[math.random(1, #messages)] }
+            else
+                local messages = deathMessages.default
+                deathMessage = { victimName, " ", messages[math.random(1, #messages)] }
+            end
         end
+        -- 发送消息给所有玩家
         net.Start( "OFDeathMessage" )
         net.WriteString( util.TableToJSON( deathMessage ) )
         net.Broadcast()
+    end
+end)
+
+hook.Add("OnNPCKilled", "NPCDeathMessage", function(victim, attacker, inflictor)
+    if( GetConVarNumber( "of_deathmessage_npc" ) == 1 ) then
+        if IsValid(victim) and IsValid(attacker) then
+            -- local cls = victim:GetClass()
+            -- local victimName = list.Get("NPC")[ cls ] and list.Get("NPC")[ cls ].Name or cls
+
+            -- if ( victim:IsNPC() and victim.NPCTable and victim.NPCTable.Name ) then
+            --     victimName =  victim.NPCTable.Name
+            -- else
+            --     victimName = "#" .. victim:GetClass()
+            -- end
+
+            local deathMessage = {}
+            local victimName = GetNPCName( victim )
+            if attacker and attacker:IsPlayer() then
+                local attackerName = attacker:Nick()
+                local messagescustoma1 = deathMessages.customa1
+                local messagescustoma2 = deathMessages.customa2
+                local messagescustomb1 = deathMessages.customb1
+                local messagescustomb2 = deathMessages.customb2
+                local messagescustomc1 = deathMessages.customc1
+                local messagescustomc2 = deathMessages.customc2
+                local randomIndex = math.random(3)
+                    if randomIndex == 1 then
+                        deathMessage = { victimName, " ", messagescustoma1[math.random(1, #messagescustoma1)], " ", attackerName, " ", messagescustoma2[math.random(1, #messagescustoma2)] }
+                    elseif randomIndex == 2 then
+                        deathMessage = { victimName, " ", messagescustomb1[math.random(1, #messagescustomb1)], " ", attackerName, " ", messagescustomb2[math.random(1, #messagescustomb2)] }
+                    else
+                        deathMessage = { victimName, " ", messagescustomc1[math.random(1, #messagescustomc1)], " ", attackerName, " ", messagescustomc2[math.random(1, #messagescustomc2)] }
+                    end
+
+            elseif attacker and attacker:IsNPC() then
+                -- local cls = attacker:GetClass()
+                -- local attackerName = list.Get( "NPC" )[ cls ] and list.Get( "NPC" )[ cls ].Name or cls
+                
+                local attackerClass = attacker:GetClass()
+                local attackerName = GetNPCName(attacker)
+
+                if( GetConVarNumber( "of_deathmessage_detail" ) == 1 ) then
+                    local messages = deathMessages[attackerClass]
+                    if not messages then
+                        local messagescustoma1 = deathMessages.customa1
+                        local messagescustoma2 = deathMessages.customa2
+                        local messagescustomb1 = deathMessages.customb1
+                        local messagescustomb2 = deathMessages.customb2
+                        local messagescustomc1 = deathMessages.customc1
+                        local messagescustomc2 = deathMessages.customc2
+                        local randomIndex = math.random(3)
+                        if randomIndex == 1 then
+                            deathMessage = { victimName, " ", messagescustoma1[math.random(1, #messagescustoma1)], " ", attackerName, " ", messagescustoma2[math.random(1, #messagescustoma2)] }
+                        elseif randomIndex == 2 then
+                            deathMessage = { victimName, " ", messagescustomb1[math.random(1, #messagescustomb1)], " ", attackerName, " ", messagescustomb2[math.random(1, #messagescustomb2)] }
+                        else
+                            deathMessage = { victimName, " ", messagescustomc1[math.random(1, #messagescustomc1)], " ", attackerName, " ", messagescustomc2[math.random(1, #messagescustomc2)] }
+                        end
+                    else
+                        deathMessage = { victimName, " ", messages[math.random(1, #messages)] }
+                    end
+                else
+                    local messagescustoma1 = deathMessages.customa1
+                    local messagescustoma2 = deathMessages.customa2
+                    local messagescustomb1 = deathMessages.customb1
+                    local messagescustomb2 = deathMessages.customb2
+                    local messagescustomc1 = deathMessages.customc1
+                    local messagescustomc2 = deathMessages.customc2
+                    local randomIndex = math.random(3)
+                    if randomIndex == 1 then
+                        deathMessage = { victimName, " ", messagescustoma1[math.random(1, #messagescustoma1)], " ", attackerName, " ", messagescustoma2[math.random(1, #messagescustoma2)] }
+                    elseif randomIndex == 2 then
+                        deathMessage = { victimName, " ", messagescustomb1[math.random(1, #messagescustomb1)], " ", attackerName, " ", messagescustomb2[math.random(1, #messagescustomb2)] }
+                    else
+                        deathMessage = { victimName, " ", messagescustomc1[math.random(1, #messagescustomc1)], " ", attackerName, " ", messagescustomc2[math.random(1, #messagescustomc2)] }
+                    end
+                end
+            end
+            net.Start( "OFDeathMessage" )
+            net.WriteString( util.TableToJSON( deathMessage ) )
+            net.Broadcast()
+        end
     end
 end )
