@@ -25,7 +25,11 @@ local function of_deathmessage( pnl )
 
 end
 
-hook.Add( "PopulateToolMenu", "DeathmessageMenus", function( )
-	spawnmenu.AddToolMenuOption( "Options" , "Obscurefreeman's mod" , "of_deathmessage" , " Death Message" , "" , "" , of_deathmessage )
-
+hook.Add( "PopulateToolMenu", "OFDeathmessageMenus", function( )
+	if ( GetConVarNumber( "of_populatetoolmenu" ) == nil or GetConVarNumber( "of_populatetoolmenu" ) == 0 ) then
+		spawnmenu.AddToolMenuOption( "Options" , "Obscurefreeman's mod" , "of_deathmessage" , " Death Message" , "" , "" , of_deathmessage )
+	else
+		spawnmenu.AddToolMenuOption( "OFmod" , "Tools" , "of_deathmessage" , " Death Message" , "" , "" , of_deathmessage )
+		
+	end
 end )
